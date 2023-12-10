@@ -1,59 +1,37 @@
-use std::{fs::File, io::Write};
+use std::f64::consts::PI;
 
 use color::Color;
-use environment::Environment;
-use point::Point;
-use projectile::Projectile;
-use vector::Vector;
+use matrix::Matrix;
+use tuple::Tuple;
 
 use crate::canvas::Canvas;
 
 mod canvas;
 mod color;
-mod environment;
-mod point;
-mod projectile;
-mod vector;
+mod matrix;
+mod tuple;
 
-fn tick(env: &Environment, projectile: Projectile) -> Projectile {
-    Projectile::new(
-        projectile.position() + projectile.velocity(),
-        projectile.velocity() + env.gravity() + env.wind(),
-    )
-}
+const WIDTH: u32 = 8000;
+const HEIGHT: u32 = 8000;
+const POINTS_IN_A_CIRCLE: u32 = if WIDTH < HEIGHT { WIDTH } else { HEIGHT } * 4;
+
+/// 2 PI radians in a circle, 12 hours on a clock
+const RADIANS_IN_AN_HOUR: f64 = 2.0 * PI / 12.0;
+const RADIANS_IN_A_MINUTE: f64 = RADIANS_IN_AN_HOUR / 5.0;
+const RADIANS_IN_A_DEGREE: f64 = 2.0 * PI / 360.0;
+const RADIANS_IN_A_CIRCLE: f64 = 2.0 * PI / POINTS_IN_A_CIRCLE as f64;
 
 fn main() {
-    let gravity = Vector::new(0.0, -0.1, 0.0); // Negative Y to push down
-    let wind = Vector::new(-0.01, 0.0, 0.0); // Negative X to add resistance
-    let env = Environment::new(gravity, wind);
+    let mut canvas = Canvas::new(WIDTH, HEIGHT);
+    let start_points = Tuple::point(0.0, -(WIDTH as f64) / (2.0 + 1.0 / WIDTH as f64), 0.0);
 
-    // Magic numbers, AKA machine learning params
-    let position = Point::new(0.0, 1.0, 0.0);
-    let velocity = Vector::new(4.0, 7.2, 0.0);
-    let mut projctile = Projectile::new(position, velocity);
-
-    let mut canvas = Canvas::new(500, 300);
-
-    let blue = Color::new(0.0, 0.0, 1.0);
-    assert_eq!(blue.scale(255), [0, 0, 255]);
-
-    while projctile.position().y() > 0.0 {
-        // Not heavy enough to bore into the earth
-        projctile = tick(&env, projctile);
-
-        // Draw the current position of the projectile
-        let position = projctile.position();
-        if position.y() < 0.0 {
-            break;
-        }
-        let pos_y = canvas.height() - (position.y() as u32); // Flip y
-        if pos_y < canvas.height() && position.x() >= 0.0 && (position.x() as u32) < canvas.width()
-        {
-            canvas.write_pixel(position.x() as u32, pos_y, blue);
-        }
+    for point in 0..POINTS_IN_A_CIRCLE {
+        let transformation = Matrix::identity()
+            .rotate_z(point as f64 * RADIANS_IN_A_CIRCLE)
+            .translate((canvas.width() / 2) as f64, (HEIGHT / 2) as f64, 0.0);
+        let new_point = &transformation * start_points;
+        canvas.write_pixel(&new_point, Color::white());
     }
-    let ppm = canvas.to_ppm();
-    println!("{ppm}");
-    let mut file = File::create("images/trajectory.ppm").unwrap();
-    file.write_all(ppm.as_bytes()).unwrap();
+
+    canvas.save("images/clock.ppm");
 }

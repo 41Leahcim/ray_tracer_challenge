@@ -1,20 +1,20 @@
-use crate::{point::Point, vector::Vector};
+use crate::tuple::Tuple;
 
 pub struct Projectile {
-    position: Point,
-    velocity: Vector,
+    position: Tuple,
+    velocity: Tuple,
 }
 
 impl Projectile {
-    pub const fn new(position: Point, velocity: Vector) -> Self {
+    pub const fn new(position: Tuple, velocity: Tuple) -> Self {
         Self { position, velocity }
     }
 
-    pub const fn position(&self) -> Point {
+    pub const fn position(&self) -> Tuple {
         self.position
     }
 
-    pub const fn velocity(&self) -> Vector {
+    pub const fn velocity(&self) -> Tuple {
         self.velocity
     }
 }
